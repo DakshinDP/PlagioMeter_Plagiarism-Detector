@@ -95,72 +95,69 @@
     </div>
 
     <script>
-        // Function to find the maximum crossing subarray
-        function maxCrossingSubarray(arr, low, mid, high) {
-            let leftSum = -Infinity;
-            let sum = 0;
-            let maxLeft = mid;
-            for (let i = mid; i >= low; i--) {
-                sum += arr[i];
-                if (sum > leftSum) {
-                    leftSum = sum;
-                    maxLeft = i;
-                }
-            }
-
-            let rightSum = -Infinity;
-            sum = 0;
-            let maxRight = mid + 1;
-            for (let i = mid + 1; i <= high; i++) {
-                sum += arr[i];
-                if (sum > rightSum) {
-                    rightSum = sum;
-                    maxRight = i;
-                }
-            }
-
-            return [maxLeft, maxRight, leftSum + rightSum];
+        // Function to tokenize and normalize a document
+        function tokenizeAndNormalize(doc) {
+            return doc.toLowerCase().split(/\s+/);
         }
 
-        // Function to find the maximum subarray using Divide and Conquer
-        function maxSubarray(arr, low, high) {
-            if (low === high) {
-                return [low, high, arr[low]];
-            } else {
-                const mid = Math.floor((low + high) / 2);
-                const left = maxSubarray(arr, low, mid);
-                const right = maxSubarray(arr, mid + 1, high);
-                const cross = maxCrossingSubarray(arr, low, mid, high);
+        // Function to find the longest common substring crossing the midpoint
+        function findCrossingSubstring(tokens1, low1, high1, tokens2, low2, high2) {
+            let maxLength = 0;
 
-                if (left[2] >= right[2] && left[2] >= cross[2]) {
-                    return left;
-                } else if (right[2] >= left[2] && right[2] >= cross[2]) {
-                    return right;
-                } else {
-                    return cross;
+            for (let i = low1; i <= high1; i++) {
+                for (let j = low2; j <= high2; j++) {
+                    if (i < 0 || j < 0 || tokens1[i] === undefined || tokens2[j] === undefined) continue;
+
+                    if (tokens1[i] === tokens2[j]) {
+                        let currentLength = 1;
+                        let x = i + 1, y = j + 1;
+
+                        while (x <= high1 && y <= high2 && tokens1[x] !== undefined && tokens2[y] !== undefined &&
+                               tokens1[x] === tokens2[y]) {
+                            currentLength++;
+                            x++;
+                            y++;
+                        }
+
+                        if (currentLength > maxLength) {
+                            maxLength = currentLength;
+                        }
+                    }
                 }
             }
+
+            return maxLength;
+        }
+
+        // Function to find the longest common substring using divide and conquer
+        function longestCommonSubstring(tokens1, low1, high1, tokens2, low2, high2) {
+            if (low1 > high1 || low2 > high2) return 0;  // Base case: no valid range
+
+            if (low1 === high1 && low2 === high2) {  // Base case: single token comparison
+                return (tokens1[low1] === tokens2[low2]) ? 1 : 0;
+            }
+
+            const mid1 = Math.floor((low1 + high1) / 2);
+            const mid2 = Math.floor((low2 + high2) / 2);
+
+            const left = longestCommonSubstring(tokens1, low1, mid1, tokens2, low2, mid2);
+            const right = longestCommonSubstring(tokens1, mid1 + 1, high1, tokens2, mid2 + 1, high2);
+            const cross = findCrossingSubstring(tokens1, low1, high1, tokens2, low2, high2);
+
+            return Math.max(left, right, cross);
         }
 
         // Function to calculate plagiarism percentage
         function calculatePlagiarismPercentage(doc1, doc2) {
-            // Tokenize the documents
-            const tokens1 = doc1.split(/\s+/);
-            const tokens2 = doc2.split(/\s+/);
+            const tokens1 = tokenizeAndNormalize(doc1);
+            const tokens2 = tokenizeAndNormalize(doc2);
 
-            // Create a hash map for tokens in doc2
-            const hashMap = new Set(tokens2);
+            if (tokens1.length === 0 || tokens2.length === 0) {
+                return 0.0;
+            }
 
-            // Create a common array for comparison
-            const arr1 = tokens1.map(token => hashMap.has(token) ? 1 : -1);
-
-            // Find the maximum subarray
-            const maxSubarrayResult = maxSubarray(arr1, 0, arr1.length - 1);
-
-            // Calculate plagiarism percentage
-            const maxLength = maxSubarrayResult[2];
-            const totalLength = tokens1.length;
-            const plagiarismPercentage = (maxLength / totalLength) * 100;
+            const longestCommonLength = longestCommonSubstring(tokens1, 0, tokens1.length - 1, tokens2, 0, tokens2.length - 1);
+            const plagiarismPercentage = (longestCommonLength / tokens1.length) * 100;
 
             return plagiarismPercentage;
         }
